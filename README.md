@@ -63,3 +63,12 @@ the deployment cannot be diagnosed from the status-1 message alone.
 - `/flight-checkin-closed`
 - `/flight-arrived`
 - `/loa` — opens a modal for the LOA dates and reason, then sends the request to the configured review channel.
+- `/economy balance [user]` — view your balance or another member's balance.
+- `/economy daily` — collect 250 SkyBucks once every 24 hours.
+- `/economy work` — earn 40–120 SkyBucks once per hour.
+- `/economy pay <user> <amount>` — send SkyBucks to another member.
+- `/economy leaderboard` — show the server's ten richest members.
+
+Economy commands are available to everyone. Balances are stored in
+`./data/economy.json` by default; set `ECONOMY_DATA_FILE` to a persistent-disk
+path when hosting if balances must survive service filesystem resets.

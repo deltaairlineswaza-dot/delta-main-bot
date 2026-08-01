@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { Client, EmbedBuilder, Events, GatewayIntentBits } from 'discord.js';
 import { commands } from './commands.js';
 import { config } from './config.js';
+import { EconomyError, EconomyStore, formatDuration } from './economy.js';
 import { buildNotification } from './notifications.js';
 import { hasRoleAbove, isLeadership, loaModal, loaRequestMessage } from './loa.js';
 
@@ -11,6 +12,35 @@ if (!process.env.DISCORD_TOKEN) throw new Error('DISCORD_TOKEN is required');
 // authorization prefix. Client#login expects only the token itself.
 const discordToken = process.env.DISCORD_TOKEN.trim().replace(/^Bot\s+/i, '');
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const economy = new EconomyStore();
+
+async function handleEconomy(interaction) {
+  if (!interaction.inGuild()) return interaction.reply({ content: 'Economy commands can only be used in a server.', ephemeral: true });
+  const action = interaction.options.getSubcommand();
+  const user = interaction.options.getUser('user') ?? interaction.user;
+  if (action === 'balance') {
+    const balance = await economy.balance(interaction.guildId, user.id);
+    return interaction.reply(`💳 **${user.displayName}** has **${balance.toLocaleString()} SkyBucks**.`);
+  }
+  if (action === 'daily') {
+    const result = await economy.daily(interaction.guildId, interaction.user.id);
+    return interaction.reply(`🎁 You collected **${result.earned} SkyBucks**! Balance: **${result.balance.toLocaleString()}**.`);
+  }
+  if (action === 'work') {
+    const jobs = ['helped load baggage', 'worked the check-in desk', 'served an onboard meal', 'marshalled an aircraft'];
+    const result = await economy.work(interaction.guildId, interaction.user.id);
+    return interaction.reply(`🛫 You ${jobs[Math.floor(Math.random() * jobs.length)]} and earned **${result.earned} SkyBucks**! Balance: **${result.balance.toLocaleString()}**.`);
+  }
+  if (action === 'pay') {
+    if (user.bot) return interaction.reply({ content: 'You cannot pay a bot.', ephemeral: true });
+    const amount = interaction.options.getInteger('amount', true);
+    const result = await economy.pay(interaction.guildId, interaction.user.id, user.id, amount);
+    return interaction.reply(`💸 <@${interaction.user.id}> sent **${amount.toLocaleString()} SkyBucks** to <@${user.id}>. New balance: **${result.senderBalance.toLocaleString()}**.`);
+  }
+  const leaders = await economy.leaderboard(interaction.guildId);
+  const rows = leaders.map((entry, index) => `**${index + 1}.** <@${entry.userId}> — **${entry.balance.toLocaleString()}**`).join('\n');
+  return interaction.reply(`🏆 **SkyBucks Leaderboard**\n${rows || 'No one has opened an account yet!'}`);
+}
 
 // Render's free Web Service requires an HTTP listener. The Discord connection
 // still does all bot work; this endpoint only provides a deployment health check.
@@ -45,6 +75,17 @@ client.once(Events.ClientReady, async ready => {
 client.on(Events.InteractionCreate, async interaction => {
   try {
     if (interaction.isChatInputCommand()) {
+      if (interaction.commandName === 'economy') {
+        try {
+          return await handleEconomy(interaction);
+        } catch (error) {
+          if (error instanceof EconomyError) {
+            const wait = error.retryAfterMs ? ` Try again in **${formatDuration(error.retryAfterMs)}**.` : '';
+            return interaction.reply({ content: `${error.message}${wait}`, ephemeral: true });
+          }
+          throw error;
+        }
+      }
       if (interaction.commandName === 'loa') {
         if (!hasRoleAbove(interaction.member, config.loaMinimumRoleId)) return interaction.reply({ content: `You must have a role above <@&${config.loaMinimumRoleId}> to request an LOA.`, ephemeral: true });
         return interaction.showModal(loaModal());

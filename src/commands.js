@@ -26,4 +26,13 @@ export const commands = [
       { name: 'On-time', value: 'On-time' }, { name: 'Late', value: 'Late' }, { name: 'Early', value: 'Early' },
     )),
   new SlashCommandBuilder().setName('loa').setDescription('Request a leave of absence'),
+  new SlashCommandBuilder().setName('economy').setDescription('Earn and share SkyBucks')
+    .addSubcommand(command => command.setName('balance').setDescription('View a SkyBucks balance')
+      .addUserOption(option => option.setName('user').setDescription('Member to view (defaults to you)')))
+    .addSubcommand(command => command.setName('daily').setDescription('Collect your daily SkyBucks'))
+    .addSubcommand(command => command.setName('work').setDescription('Work a shift to earn SkyBucks'))
+    .addSubcommand(command => command.setName('pay').setDescription('Send SkyBucks to another member')
+      .addUserOption(option => option.setName('user').setDescription('Member to pay').setRequired(true))
+      .addIntegerOption(option => option.setName('amount').setDescription('SkyBucks to send').setMinValue(1).setRequired(true)))
+    .addSubcommand(command => command.setName('leaderboard').setDescription('View the richest members')),
 ].map(command => command.toJSON());
