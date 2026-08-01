@@ -37,6 +37,24 @@ You do **not** need a client ID on Render anymore; the running bot obtains its a
 
 If you use the optional `npm run deploy` command locally, `DISCORD_CLIENT_ID` is still the **Application ID** found under **General Information** in the [Discord Developer Portal](https://discord.com/developers/applications).
 
+### Resolving this PR's GitHub conflicts
+
+If GitHub shows conflicts between the bot PR branch and `main`, keep the bot
+PR's newer version: select **Accept current change** for every conflict block in
+`.env.example`, `README.md`, and `src/index.js`. Do not select **Accept both
+changes**, because that leaves duplicate imports/login calls. After every block
+is resolved, select **Mark as resolved**, then **Commit merge**. Return to the
+pull request and merge it before redeploying Render.
+
+### When Render says only "Exited with status 1"
+
+The Events page reports only that the process stopped; it does not contain the
+actual error. Select the red **Deploy failed** event, open **View logs** (or the
+**Logs** tab), and find the first error immediately above `Exited with status
+1`. If it says `TokenInvalid`, replace `DISCORD_TOKEN` using the instructions
+above. If it reports a different error, copy that error and its preceding lines;
+the deployment cannot be diagnosed from the status-1 message alone.
+
 ## Commands
 
 - `/flight-confirmation`
